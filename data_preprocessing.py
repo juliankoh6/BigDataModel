@@ -49,10 +49,10 @@ all_removed_data = pd.concat([
 ], ignore_index=True)
 
 # Save removed data
-all_removed_data.to_excel('data/removed_data.xlsx', index=False)
+all_removed_data.to_excel('data/removed_data.csv', index=False)
 
 # Save cleaned data
-df.to_excel('data/cleaned_data.xlsx', index=False)
+df.to_excel('data/cleaned_data.csv', index=False)
 
 # Verify Final Row Count and print removed data counts
 print("Final row count after cleaning:", df.shape[0])
