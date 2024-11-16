@@ -43,7 +43,7 @@ Amount: Total spending on the product.
 Date: Date of purchase (format: YYYY-MM-DD).
 Invoice No.: Unique identifier for the transaction.
 
-4. Running the Dashboard
+3. Running the Dashboard
 Run the Streamlit dashboard using the following command:
 streamlit run dashboard.py
 
