@@ -20,14 +20,14 @@ Recommends products to customers using a collaborative filtering approach (SVD).
 Setup Instructions
 
 1. Ensure the following libraries are installed:
-pandas
-numpy
-matplotlib
-seaborn
-streamlit
-prophet
-scikit-learn
-surprise
+pandas,
+numpy,
+matplotlib,
+seaborn,
+streamlit,
+prophet,
+scikit-learn,
+surprise,
 
 use command:
 pip install pandas numpy matplotlib seaborn streamlit prophet scikit-learn scikit-surprise
