@@ -13,12 +13,12 @@ Customer Lifetime Value (CLV):
 Calculates and ranks customers based on their projected lifetime value.
 
 Upsell Prediction:
-Identifies customers likely to purchase higher-value products using a Random Forest Classifier.
+Identifies top products to upsell to selected client
+
 Cross-Sell Prediction:
+Recommends products for cross selling to customer using FPGrowth
 
-Recommends products to customers using a collaborative filtering approach (SVD).
 Setup Instructions
-
 1. Ensure the following libraries are installed:
 pandas
 numpy
