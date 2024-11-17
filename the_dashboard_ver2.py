@@ -131,7 +131,7 @@ def get_upsell_recommendations(customer_name, customer_data, product_data, top_n
     
     return recommendations
 
-product_data = customer_product_data[['Product', 'Amount']].drop_duplicates()  # Simplified product data
+product_data = customer_product_data[['Product', 'Amount']].drop_duplicates()
 
 upsell_recommendations = get_upsell_recommendations(customer_name, customer_product_data, product_data)
 
