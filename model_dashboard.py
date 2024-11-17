@@ -7,7 +7,6 @@ from prophet import Prophet
 from mlxtend.frequent_patterns import fpgrowth, association_rules
 import streamlit as st
 
-# Load dataset (you may want to upload it through Streamlit UI)
 @st.cache
 def load_data():
     df = pd.read_csv("data/cleaned_data.csv")
@@ -17,19 +16,16 @@ def load_data():
 
 df = load_data()
 
-# Aggregating data by customer and product
 customer_product_data = df.groupby(['Client Name', 'Product']).agg({
     'Quantity': 'sum',
     'Amount': 'sum'
 }).reset_index()
 
-# Monthly purchase frequency and spending
 monthly_purchase_data = df.groupby(['Client Name', 'Product', 'YearMonth']).agg({
     'Quantity': 'sum',
     'Amount': 'sum'
 }).reset_index()
 
-# Streamlit Title
 st.title('Customer Insights and Product Recommendations')
 
 # -----------------------------------
@@ -46,21 +42,17 @@ prophet_df.columns = ['ds', 'y']
 prophet_df['ds'] = prophet_df['ds'].dt.to_timestamp()
 prophet_df['y'] = pd.to_numeric(prophet_df['y'], errors='coerce')
 
-# Drop rows with NaN values
 prophet_df = prophet_df.dropna(subset=['ds', 'y'])
 
-# Check if there's enough data
 if len(prophet_df) < 2:
    st.write(f"Not enough data for product '{product_name}' and customer '{customer_name}'")
 else:
    model = Prophet()
    model.fit(prophet_df)
 
-   # Make a future dataframe for predictions (next 3 months)
    future = model.make_future_dataframe(periods=3, freq='M')
    forecast = model.predict(future)
 
-   # Plot the forecast using Streamlit
    st.subheader(f"3-Month Forecast for {product_name} for {customer_name}")
    fig, ax = plt.subplots(figsize=(10, 6))
    model.plot(forecast, ax=ax)
@@ -92,7 +84,6 @@ avg_margin = 0.3
 retention_rate = 0.5  
 customer_features['CLV'] = (customer_features['Total_Amount'] * avg_margin) / (1 - retention_rate)
 
-# Visualize CLV
 st.subheader("Top 10 Customers by Customer Lifetime Value (CLV)")
 fig, ax = plt.subplots(figsize=(10, 6))
 sns.barplot(data=customer_features.sort_values('CLV', ascending=False).head(10), x='CLV', y='Client Name', palette='viridis')
@@ -103,39 +94,29 @@ st.pyplot(fig)
 
 # ---------------------
 # **Generate Association Rules with FP-Growth**
-# Step 1: Prepare data for FP-Growth (Converting to a one-hot encoded matrix)
 basket = df.groupby(['Invoice No.', 'Product'])['Quantity'].sum().unstack().reset_index().set_index('Invoice No.')
-basket = basket.applymap(lambda x: 1 if x > 0 else 0)  # Convert quantity to 1 if purchased
+basket = basket.applymap(lambda x: 1 if x > 0 else 0)  
 
-# Step 2: Apply FP-Growth to find frequent itemsets
 frequent_itemsets = fpgrowth(basket, min_support=0.05, use_colnames=True)
 
-# Step 3: Generate association rules from frequent itemsets
 rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1.0)
 
 
 # ---------------------
 # Section 4: Upsell Recommendations
 def get_upsell_recommendations(customer_name, customer_data, product_data, top_n=5):
-    """
-    Generate top N upsell recommendations for a specific customer based on their purchase history.
-    """
-    # Extract the selected customer's purchase history
     customer_purchases = customer_data[customer_data['Client Name'] == customer_name]
     
     if customer_purchases.empty:
         return f"No purchase history found for customer '{customer_name}'."
     
-    # Identify the highest price the customer has paid
     max_purchase_price = customer_purchases['Amount'].max()
     
-    # Filter products priced higher than the customer's purchase price
     upsell_candidates = product_data[product_data['Amount'] > max_purchase_price]
     
     if upsell_candidates.empty:
         return f"No upsell opportunities available for customer '{customer_name}'."
-    
-    # Calculate popularity (purchase frequency) for upsell candidates
+
     product_popularity = (
         customer_data['Product']
         .value_counts()
@@ -143,22 +124,17 @@ def get_upsell_recommendations(customer_name, customer_data, product_data, top_n
         .reset_index(name='Popularity')
     )
     
-    # Merge popularity data with upsell candidates
     upsell_candidates = upsell_candidates.merge(product_popularity, on='Product', how='left').fillna(0)
     
-    # Deduplicate by keeping the highest-priced entry for each product
     upsell_candidates = upsell_candidates.sort_values(by='Amount', ascending=False).drop_duplicates(subset='Product', keep='first')
     
-    # Sort by popularity in descending order and select top N
     upsell_candidates = upsell_candidates.sort_values(by='Popularity', ascending=False).head(top_n)
     
-    # Format the recommendations
     recommendations = upsell_candidates[['Product', 'Amount', 'Popularity']].to_dict('records')
     
     return recommendations
 
-# Example Usage: Get upsell recommendations for a specific customer
-product_data = customer_product_data[['Product', 'Amount']].drop_duplicates()  # Simplified product data
+product_data = customer_product_data[['Product', 'Amount']].drop_duplicates()  
 
 upsell_recommendations = get_upsell_recommendations(customer_name, customer_product_data, product_data)
 
@@ -169,28 +145,21 @@ for rec in upsell_recommendations:
 # ---------------------
 # Section 5: Cross-Sell Prediction
 def get_cross_sell_recommendations(rules, selected_product, top_n=5):
-    # Filter rules where the selected product is in the antecedents
     selected_product_rules = rules[rules['antecedents'].apply(lambda x: selected_product in x)]
     
-    # Sort by confidence (or lift) in descending order
     selected_product_rules = selected_product_rules.sort_values(by='confidence', ascending=False)
     
-    # Deduplicate recommendations, keeping only the highest-confidence rule for each product
     unique_recommendations = selected_product_rules.drop_duplicates(subset='consequents', keep='first')
     
-    # Show top N unique recommendations
     top_recommendations = unique_recommendations.head(top_n)
     
-    # Extract product names and confidence
     recommendations = [
         (list(consequent)[0], confidence) 
         for consequent, confidence in zip(top_recommendations['consequents'], top_recommendations['confidence'])
     ]
     
-    # Return formatted recommendations
     return recommendations
 
-# Example Usage: Get recommendations for a dynamically selected product
 recommendations = get_cross_sell_recommendations(rules, product_name)
 
 st.subheader(f"Top Cross-Sell Recommendations for '{product_name}':")
