@@ -8,6 +8,7 @@ from mlxtend.frequent_patterns import fpgrowth, association_rules
 import streamlit as st
 
 @st.cache
+# Read and process the data
 def load_data():
     df = pd.read_csv("data/cleaned_data.csv")
     df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
@@ -16,11 +17,14 @@ def load_data():
 
 df = load_data()
 
+# Aggregate data 
+# Each customer and for each product
 customer_product_data = df.groupby(['Client Name', 'Product']).agg({
     'Quantity': 'sum',
     'Amount': 'sum'
 }).reset_index()
 
+# Each customer, product and month
 monthly_purchase_data = df.groupby(['Client Name', 'Product', 'YearMonth']).agg({
     'Quantity': 'sum',
     'Amount': 'sum'
@@ -44,6 +48,7 @@ prophet_df['y'] = pd.to_numeric(prophet_df['y'], errors='coerce')
 
 prophet_df = prophet_df.dropna(subset=['ds', 'y'])
 
+# Predict future purchase quantities and visualize the result
 if len(prophet_df) < 2:
    st.write(f"Not enough data for product '{product_name}' and customer '{customer_name}'")
 else:
@@ -60,6 +65,7 @@ else:
 
 # -----------------------------------
 # Section 2: Customer Segmentation
+# Summarize customer data Quantity, Amount, and Invoice count
 st.header('Section 2: Customer Segmentation')
 customer_features = df.groupby('Client Name').agg({
     'Quantity': 'sum',
@@ -80,12 +86,13 @@ plt.grid(True)
 st.pyplot(fig)
 
 # -----------------------------------
-# Section 3: Customer Lifetime Value (CLV)
+# Section 3: Calculation of Customer Lifetime Value (CLV)
 st.header('Section 3: Customer Lifetime Value (CLV) Calculation')
 avg_margin = 0.3  
 retention_rate = 0.5  
 customer_features['CLV'] = (customer_features['Total_Amount'] * avg_margin) / (1 - retention_rate)
 
+# Visualize
 st.subheader("Top 10 Customers by Customer Lifetime Value (CLV)")
 fig, ax = plt.subplots(figsize=(10, 6))
 sns.barplot(data=customer_features.sort_values('CLV', ascending=False).head(10), x='CLV', y='Client Name', palette='viridis')
@@ -105,6 +112,7 @@ rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1.0)
 
 # ---------------------
 # Section 4: Upsell Recommendations
+# Identifiy upsell opportunities based on the customer's purchase history involving higher-priced products.
 def get_upsell_recommendations(customer_name, customer_data, product_data, top_n=5):
     customer_purchases = customer_data[customer_data['Client Name'] == customer_name]
     if customer_purchases.empty:
@@ -141,6 +149,7 @@ for rec in upsell_recommendations:
 
 # ---------------------
 # Section 5: Cross-Sell Prediction
+# Recommend complementary products using association rules derived from FPGrowth
 def get_cross_sell_recommendations(rules, selected_product, top_n=5):
     selected_product_rules = rules[rules['antecedents'].apply(lambda x: selected_product in x)]
     selected_product_rules = selected_product_rules.sort_values(by='confidence', ascending=False)
